@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>لعبة دولتي - Dawlati Game</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0b0f19; color: #ffffff; overflow: hidden; width: 100vw; height: 100vh; }
+        
+        /* إجبار الوضع الأفقي عبر التدوير إذا كان الجهاز عمودياً */
+        @media screen and (orientation: portrait) {
+            body {
+                transform: rotate(90deg);
+                transform-origin: left top;
+                width: 100vh;
+                height: 100vw;
+                position: absolute;
+                top: 100%;
+                left: 0;
+            }
+        }
+
+        .screen { display: none; width: 100vw; height: 100vh; padding: 20px; flex-direction: column; justify-content: center; align-items: center; background: radial-gradient(circle, #1a2238 0%, #0b0f19 100%); }
+        .active { display: flex; }
+
+        h1 { font-size: 2.2rem; color: #f39c12; margin-bottom: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        h2 { font-size: 1.5rem; color: #3498db; margin-bottom: 10px; }
+        p { font-size: 1rem; color: #bdc3c7; margin-bottom: 20px; text-align: center; }
+
+        .btn-container { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; }
+        button, select, input { padding: 10px 20px; font-size: 1rem; border-radius: 8px; border: none; outline: none; cursor: pointer; background: #2c3e50; color: white; transition: 0.3s; }
+        button:hover { background: #f39c12; color: #000; transform: scale(1.05); }
+        
+        input, select { background: #16213e; border: 1px solid #34495e; width: 250px; text-align: center; }
+
+        .dashboard-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; width: 90%; margin-bottom: 20px; }
+        .card { background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.1); text-align: center; }
+        .card h3 { font-size: 1.1rem; color: #e74c3c; margin-bottom: 5px; }
+        .card span { font-size: 1.3rem; font-weight: bold; color: #2ecc71; }
+
+        .box { background: rgba(0,0,0,0.4); padding: 20px; border-radius: 12px; width: 80%; max-width: 600px; border: 1px solid #f39c12; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <!-- شاشة اختيار أطوار اللعب -->
+    <div id="modeScreen" class="screen active">
+        <h1>لعبة دَولتي - Dawlati</h1>
+        <p>اختر نمط اللعب المفضل لديك لبدء بناء تاريخك الإستراتيجي</p>
+        <div class="btn-container">
+            <button onclick="selectMode('solo')">🌐 المود الفردي (أفلاطون)</button>
+            <button onclick="selectMode('coop')">🤝 مود الأصدقاء (تعاوني)</button>
+            <button onclick="selectMode('global')">🌍 المود العام (عالمي MMO)</button>
+        </div>
+    </div>
+
+    <!-- شاشة تأسيس الدولة -->
+    <div id="setupScreen" class="screen">
+        <h1>تأسيس الدولة العظمى</h1>
+        <div class="btn-container" style="flex-direction: column; align-items: center;">
+            <input type="text" id="countryName" placeholder="أدخل اسم دولتك (مثلاً: الإمبراطورية النورية)">
+            <select id="countryLocation">
+                <option value="coast">منطقة ساحلية بحرية</option>
+                <option value="desert">صحراء غنية بالنفط والمعادن</option>
+                <option value="mountain">جبال حصينة ومنيعة</option>
+                <option value="island">جزيرة استراتيجية معزولة</option>
+                <option value="plains">سهول خصبة زراعية واسعة</option>
+            </select>
+            <select id="governmentSystem">
+                <option value="republic">جمهورية رئاسية</option>
+                <option value="constitutional">ملكية دستورية</option>
+                <option value="absolute">ملكية مطلقة</option>
+                <option value="jamahiriya">نظام جماهيري مباشر</option>
+                <option value="military">دكتاتورية / حكم عسكري</option>
+                <option value="federal">فيدرالية اتحادية</option>
+                <option value="shura">نظام الشورى / الخلافة</option>
+            </select>
+            <input type="text" id="historyYear" placeholder="السنة التاريخية (مثلاً: 500 ق.م أو 1453 م)">
+            <button onclick="startSimulation()" style="background: #27ae60; font-weight: bold;">إعلان قيام الدولة 🚀</button>
+        </div>
+    </div>
+
+    <!-- شاشة اللعب الرئيسية (اللوحة الاستراتيجية) -->
+    <div id="gameScreen" class="screen">
+        <h2 id="displayTitle">اسم الدولة</h2>
+        <div class="dashboard-grid">
+            <div class="card"><h3>الاقتصاد</h3><span id="statEco">100</span></div>
+            <div class="card"><h3>الجيش</h3><span id="statArmy">100</span></div>
+            <div class="card"><h3>الاستقرار</h3><span id="statStability">100</span></div>
+            <div class="card"><h3>التعليم والعلوم</h3><span id="statEdu">100</span></div>
+        </div>
+        <div class="box">
+            <h3 id="eventTitle" style="color: #f39c12; margin-bottom: 10px;">حدث تاريخي عاجل</h3>
+            <p id="eventDesc">جاري استقبال الأحداث العالمية والمحلية لدولتك...</p>
+            <div class="btn-container">
+                <button onclick="nextYear(1)">اتخاذ قرار استثماري</button>
+                <button onclick="nextYear(2)">تطوير الجيش والدفاع</button>
+                <button onclick="nextYear(3)">إصلاحات داخلية وشعبية</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let gameState = { mode: '', name: '', location: '', gov: '', year: '', economy: 100, army: 100, stability: 100, edu: 100 };
+
+        function selectMode(mode) {
+            gameState.mode = mode;
+            document.getElementById('modeScreen').classList.remove('active');
+            document.getElementById('setupScreen').classList.add('active');
+        }
+
+        function startSimulation() {
+            const name = document.getElementById('countryName').value;
+            const year = document.getElementById('historyYear').value;
+            if(!name || !year) {
+                alert('يرجى كتابة اسم الدولة وتحديد السنة التاريخية!');
+                return;
+            }
+            gameState.name = name;
+            gameState.year = year;
+            gameState.location = document.getElementById('countryLocation').value;
+            gameState.gov = document.getElementById('governmentSystem').value;
+
+            document.getElementById('displayTitle').innerText = `${gameState.name} (${gameState.year}) - النظام: ${gameState.gov}`;
+            document.getElementById('setupScreen').classList.remove('active');
+            document.getElementById('gameScreen').classList.add('active');
+        }
+
+        function nextYear(choice) {
+            if(choice === 1) {
+                gameState.economy += 15;
+                gameState.stability -= 5;
+                document.getElementById('eventDesc').innerText = "تم ضخ أموال في الاقتصاد، زادت الخزينة ولكن ظهرت بعض الاعتراضات الشعبية الضرائبية.";
+            } else if(choice === 2) {
+                gameState.army += 20;
+                gameState.economy -= 10;
+                document.getElementById('eventDesc').innerText = "تم تحديث القوات المسلحة وبناء تحصينات عسكرية جديدة على الحدود.";
+            } else {
+                gameState.stability += 20;
+                gameState.edu += 10;
+                document.getElementById('eventDesc').innerText = "إصلاحات اجتماعية وتعليمية واسعة أدت إلى حب الشعب والتفافهم حول القيادة.";
+            }
+
+            document.getElementById('statEco').innerText = gameState.economy;
+            document.getElementById('statArmy').innerText = gameState.army;
+            document.getElementById('statStability').innerText = gameState.stability;
+            document.getElementById('statEdu').innerText = gameState.edu;
+        }
+    </script>
+</body>
+</html>
